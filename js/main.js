@@ -8,9 +8,10 @@ function initMainMap() {
   if (!mainMap) {
     mainMap = L.map('mainMap', { zoomControl: true, fadeAnimation: true }).setView([39.0, 18.0], 5);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // 구글 지도 한국어 타일로 변경
+    L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=ko', {
       maxZoom: 18,
-      attribution: '© OpenStreetMap contributors'
+      attribution: '© Google Maps'
     }).addTo(mainMap);
 
     allMapEvents.forEach(evt => {
