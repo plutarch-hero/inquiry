@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>플루타르코스 비교 열전 아카이브</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e1714">
+
+  <!-- 지도 및 라이브러리 CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- CSS 캐시 갱신 -->
+  <link rel="stylesheet" href="style.css?v=110">
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <h1 id="appTitle">🏛️ 플루타르코스 세계 지도</h1>
+    </div>
+    
+    <div class="header-right">
+      <button class="nav-btn active" id="homeMapBtn">🗺️ 전체 지도</button>
+      <select class="hero-select" id="heroSelect">
+        <option value="" disabled selected>👤 영웅 상세 보기</option>
+        <option value="theseus">테세우스 (아테네)</option>
+        <option value="romulus">로물루스 (로마)</option>
+        <option value="lycurgus">리쿠르고스 (스파르타)</option>
+        <option value="numa">누마 폼필리우스 (로마)</option>
+        <option value="solon">솔론 (아테네)</option>
+        <option value="publicola">푸블리콜라 (로마)</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- 전체 지도 뷰 -->
+  <section class="main-view active" id="mapSection">
+    <div id="mainMap"></div>
+    <div class="map-legend">
+      <span class="legend-item"><span class="dot" style="background:#eab308;"></span> 테세우스</span>
+      <span class="legend-item"><span class="dot" style="background:#dc2626;"></span> 로물루스</span>
+      <span class="legend-item"><span class="dot" style="background:#b91c1c;"></span> 리쿠르고스</span>
+      <span class="legend-item"><span class="dot" style="background:#16a34a;"></span> 누마</span>
+      <span class="legend-item"><span class="dot" style="background:#2563eb;"></span> 솔론</span>
+      <span class="legend-item"><span class="dot" style="background:#7c3aed;"></span> 푸블리콜라</span>
+    </div>
+  </section>
+
+  <!-- 영웅 상세 뷰 -->
+  <section class="main-view" id="heroDetailSection">
+    
+    <nav class="hero-sub-nav">
+      <button class="tab-btn active" data-tab="overview">🏛️ 개요</button>
+      <button class="tab-btn" data-tab="network">🌐 관계망</button>
+      <button class="tab-btn" data-tab="quotes">📜 중요 문장</button>
+      <button class="tab-btn" data-tab="gallery">🖼️ 갤러리</button>
+      <button class="tab-btn" data-tab="debate">🧭 공동탐구질문</button>
+    </nav>
+
+    <!-- 🏛️ 개요 탭 -->
+    <div class="tab-content active" id="tabOverview">
+      <div class="content-box" id="overviewBox"></div>
+    </div>
+
+    <!-- 🌐 관계망 탭 -->
+    <div class="tab-content" id="tabNetwork">
+      <div class="network-wrap">
+        <svg id="networkSvg"></svg>
+        <div class="node-inspector hidden" id="nodeInspector">
+          <button class="close-btn" id="closeInsBtn">✕</button>
+          <span class="ins-badge" id="insType">역할</span>
+          <h3 id="insName">이름</h3>
+          <p id="insDesc">설명</p>
+          <div class="ins-insight" id="insInsight">통찰</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🖼️ 갤러리 탭 -->
+    <div class="tab-content" id="tabGallery">
+      <div class="gallery-header">
+        <h3>🏛️ 고전 명화 아카이브</h3>
+        <p class="gallery-subtext">위키미디어 공용(Wikimedia Commons)의 퍼블릭 도메인(저작권 만료) 명화 자료입니다.</p>
+      </div>
+      <div id="gallery-container" class="gallery-grid"></div>
+    </div>
+    
+    <!-- 📜 중요 문장 탭 -->
+    <div class="tab-content" id="tabQuotes">
+      <div class="content-box" id="quotesBox"></div>
+    </div>
+
+   <!-- 🧭 공동탐구질문 탭 -->
+    <div class="tab-content" id="tabDebate">
+      <div class="content-box">
+        <div class="inquiry-anchor-card" id="inquiryAnchorBox"></div>
+
+        <div class="debate-form-card">
+          <h3 id="debateFormTitle">💭 나의 탐구 생각 남기기</h3>
+          <p class="form-subtext">주어진 질문에 대한 나의 근거 있는 주장이나 새로운 관점을 기록해 보세요.</p>
+          
+          <div class="inquiry-tags">
+            <label><input type="radio" name="inquiryTag" value="[💡 나의 주장]" checked> 💡 나의 주장</label>
+            <label><input type="radio" name="inquiryTag" value="[⚡ 반론/비판]"> ⚡ 반론/비판</label>
+            <label><input type="radio" name="inquiryTag" value="[❓ 새로운 질문]"> ❓ 새로운 질문</label>
+          </div>
+
+          <div class="input-row">
+            <input type="text" id="debateAuthor" placeholder="탐구자 닉네임" maxlength="10">
+            <input type="password" id="debatePassword" placeholder="비밀번호(4자리)" maxlength="8">
+          </div>
+          <textarea id="debateQuestion" placeholder="생각을 남겨주세요 (예: 저는 ~한 이유로 이 결단에 동의/반대합니다...)"></textarea>
+          <button class="submit-debate-btn" onclick="addDebatePost()">탐구 생각 등록</button>
+        </div>
+        <div id="debateList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 데이터 4개 파일 순차 로드 -->
+  <script src="data/map.js?v=110"></script>
+  <script src="data/heroes-overview.js?v=110"></script>
+  <script src="data/heroes-graph.js?v=110"></script>
+  <script src="data/gallery.js?v=110"></script>
+  <!-- 로직 3개 파일 순차 로드 -->
+  <script src="js/api.js?v=110"></script>
+  <script src="js/ui.js?v=110"></script>
+  <script src="js/main.js?v=110"></script>
+</body>
+</html>
