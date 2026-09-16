@@ -901,3 +901,27 @@ header {
   stroke: #ffffff;
   stroke-width: 2px;
 }
+
+/* 1. 범례를 누르기 좋은 버튼처럼 만들기 */
+.legend-item {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.legend-item:hover {
+  transform: scale(1.05);
+  background: rgba(229, 190, 117, 0.1);
+  border-radius: 4px;
+}
+
+/* 2. 지도 핀이 커지면서 반짝이는 마법 효과 */
+.pixel-pin-body.highlight-pin {
+  transform: scale(1.6) translateY(-10px) !important;
+  filter: drop-shadow(0 0 12px #e5be75) !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  z-index: 1000 !important;
+}
+
+/* 평소 상태에는 부드러운 전환 효과만 부여 */
+.pixel-pin-body {
+  transition: all 0.3s ease;
+}
