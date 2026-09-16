@@ -1,3 +1,7 @@
+/* ==========================================
+   1. 데이터 호출 유틸리티
+   ========================================== */
+// 현재 선택된 영웅의 개요(Overview)와 관계망(Graph) 데이터를 합쳐서 반환
 function getHeroFullData(heroKey) {
   return {
     ...heroOverviewData[heroKey],
@@ -5,11 +9,15 @@ function getHeroFullData(heroKey) {
   };
 }
 
+/* ==========================================
+   2. 탭 1: 개요 (프로필 & 생애 곡선) 렌더링
+   ========================================== */
 function renderOverview() {
   const h = getHeroFullData(currentHero);
   const spriteHtml = HERO_SPRITES[currentHero] || "";
   const ov = h.overview;
 
+  // 영웅별 핵심 메타 정보 설정
   const heroMeta = {
     theseus: { role: "아테네의 연방 통합자", tagline: "“청동 몽둥이로 불의를 꺾고 크레타의 미궁을 돌파한 자”" },
     romulus: { role: "영원한 제국 로마의 시조", tagline: "“늑대의 젖을 먹고 자라 팔라티노 언덕에 성벽을 쌓은 자”" },
@@ -23,6 +31,7 @@ function renderOverview() {
   const points = ov.lifeCurve || [];
   let chartSvg = "";
 
+  // 생애 곡선(Life Curve) 그래프 생성
   if (points.length > 0) {
     const svgW = 600, svgH = 220, padX = 50, padY = 35;
     const innerW = svgW - padX * 2, centerY = svgH / 2, maxAmp = (svgH - padY * 2) / 2;
@@ -76,6 +85,7 @@ function renderOverview() {
       </div>
     `;
 
+    // 생애 곡선 점 클릭 시 설명 업데이트 함수
     window.showCurveDetail = function(idx) {
       const pt = getHeroFullData(currentHero).overview.lifeCurve[idx];
       const descBox = document.getElementById("curveEventDesc");
@@ -85,6 +95,7 @@ function renderOverview() {
     };
   }
 
+  // 최종 개요 화면 렌더링
   document.getElementById("overviewBox").innerHTML = `
     <div class="hero-pixel-status">
       <div class="pixel-avatar-box">${spriteHtml}</div>
@@ -118,41 +129,9 @@ function renderOverview() {
   `;
 }
 
-function renderQuotes() {
-  const h = getHeroFullData(currentHero);
-  let html = "";
-  (h.quotes || []).forEach(q => {
-    html += `<div class="card"><h3>${q.text}</h3><p style="color:#aaa;margin-top:6px;">📌 ${q.desc}</p></div>`;
-  });
-  document.getElementById("quotesBox").innerHTML = html;
-}
-
-function renderGallery() {
-  const container = document.getElementById("gallery-container");
-  if (!container) return;
-  const items = heroGalleries[currentHero] || [];
-  if (items.length === 0) {
-    container.innerHTML = `<div style="color:#a89f91; text-align:center; grid-column:1/-1; padding:40px 0;">아직 등록된 명화 자료가 없습니다.</div>`;
-    return;
-  }
-  container.innerHTML = items.map(item => `
-    <div class="art-card">
-      <div class="art-img-wrap"><img src="${item.imgUrl}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.onerror=null; if(!this.src.startsWith('https://wsrv.nl/?url=')){ this.src='https://wsrv.nl/?url=' + encodeURIComponent(this.src) + '&w=700'; }"></div>
-      <div class="art-info">
-        <h4 class="art-title">${item.title}</h4>
-        <p class="art-original-title">${item.originalTitle}</p>
-        <ul class="art-meta">
-          <li><strong>작가:</strong> ${item.artist}</li>
-          <li><strong>연대/소장:</strong> ${item.year} | ${item.museum}</li>
-          <li><strong>라이선스:</strong> <span class="license-badge">${item.license}</span></li>
-        </ul>
-        <p class="art-desc">${item.desc}</p>
-        <a href="${item.sourceUrl}" target="_blank" rel="noopener noreferrer" class="source-link">위키미디어 출처 보기 ↗</a>
-      </div>
-    </div>
-  `).join('');
-}
-
+/* ==========================================
+   3. 탭 2: 관계망 (Network) 렌더링
+   ========================================== */
 function renderNetwork() {
   const h = getHeroFullData(currentHero);
   const svg = d3.select("#networkSvg");
@@ -202,35 +181,21 @@ function renderNetwork() {
     celestialGrid.append("text").attr("class", "axis-constellation-title").attr("x", axis.x).attr("y", axis.labelY).attr("fill", axis.color).text(axis.name);
   });
 
-const nodes = JSON.parse(JSON.stringify(h.graph.nodes));
-  const originalLinks = JSON.parse(JSON.stringify(h.graph.links)); // 원본 선 데이터 백업
+  const nodes = JSON.parse(JSON.stringify(h.graph.nodes));
+  const originalLinks = JSON.parse(JSON.stringify(h.graph.links));
 
-  // ⭐ 1. 중앙의 주인공(영웅) ID 찾기
   const centerId = nodes.find(n => n.axis === "center").id;
-
-  // ⭐ 2. 모든 조연을 무조건 영웅과 직접 연결하도록 선(link)을 완전히 새로 만들기!
   let links = [];
   nodes.forEach(n => {
-    if (n.id !== centerId) { // 영웅 본인이 아니라면
-      // 이 별이 원래 가지고 있던 '관계 설명(label)'을 원본에서 찾아오기
-      const oldLink = originalLinks.find(l => 
-        (l.source.id || l.source) === n.id || 
-        (l.target.id || l.target) === n.id
-      );
+    if (n.id !== centerId) {
+      const oldLink = originalLinks.find(l => (l.source.id || l.source) === n.id || (l.target.id || l.target) === n.id);
       const labelText = oldLink ? oldLink.label : "관련 인물/사건";
-
-      // 영웅(centerId)과 이 별(n.id)을 강제로 직접 연결!
-      links.push({
-        source: centerId,
-        target: n.id,
-        label: labelText
-      });
+      links.push({ source: centerId, target: n.id, label: labelText });
     }
   });
 
   nodes.forEach(d => { if (d.axis === "center") { d.x = cx; d.y = cy; d.fx = cx; d.fy = cy; } });
   
-  // ⭐ 자석 힘 및 충돌 반경 완화 (글자 안 겹치게)
   const simulation = d3.forceSimulation(nodes)
     .velocityDecay(0.8)
     .force("link", d3.forceLink(links).id(d => d.id).distance(isMobile ? 80 : 120).strength(0.7))
@@ -245,7 +210,6 @@ const nodes = JSON.parse(JSON.stringify(h.graph.nodes));
       return (targetNode && targetNode.axis !== "center" && axes[targetNode.axis]) ? axes[targetNode.axis].color : "#665243";
     });
 
-  // ⭐ 관계 글자 생성 및 클래스 부여
   const linkText = g.append("g").selectAll("text").data(links).enter().append("text")
     .attr("class", "link-label")
     .attr("text-anchor", "middle")
@@ -296,15 +260,12 @@ const nodes = JSON.parse(JSON.stringify(h.graph.nodes));
 
   node.append("text").attr("class", "node-text").attr("dy", d => d.axis === "center" ? 32 : 19).attr("text-anchor", "middle").text(d => d.name);
 
-  // ⭐ 통합된 클릭 이벤트 (인물 창 띄우기 + 별자리 선/글자 켜기)
+  // 통합된 클릭 이벤트 (인물 창 띄우기 + 별자리 선/글자 켜기)
   node.on("click", (e, d) => {
     e.stopPropagation();
-    
-    // 1. 선과 관계 글자 켜기
     link.classed("active", l => (l.source.id || l.source) === d.id || (l.target.id || l.target) === d.id);
     linkText.classed("active", l => (l.source.id || l.source) === d.id || (l.target.id || l.target) === d.id);
     
-    // 2. 연결된 인물의 이름 켜기
     d3.selectAll(".star-node").classed("active", n => {
       if (n.id === d.id) return true;
       return links.some(l => 
@@ -313,7 +274,6 @@ const nodes = JSON.parse(JSON.stringify(h.graph.nodes));
       );
     });
 
-    // 3. 우측 상단 인물 설명창(Inspector) 내용 채우고 띄우기
     const ins = document.getElementById("nodeInspector");
     document.getElementById("insType").innerText = d.type;
     document.getElementById("insName").innerText = d.name;
@@ -328,7 +288,6 @@ const nodes = JSON.parse(JSON.stringify(h.graph.nodes));
     }
   });
 
-  // ⭐ 빈 바탕을 누르면 모두 초기화(끄기)
   svg.on("click", () => { 
     document.getElementById("nodeInspector").classList.add("hidden"); 
     link.classed("active", false); 
@@ -336,7 +295,6 @@ const nodes = JSON.parse(JSON.stringify(h.graph.nodes));
     d3.selectAll(".star-node").classed("active", false); 
   });
 
-  // ⭐ 설명창의 X 버튼을 누르면 모두 초기화(끄기)
   document.getElementById("closeInsBtn").onclick = () => { 
     document.getElementById("nodeInspector").classList.add("hidden"); 
     link.classed("active", false); 
@@ -349,4 +307,48 @@ const nodes = JSON.parse(JSON.stringify(h.graph.nodes));
     linkText.attr("x", d => (d.source.x + d.target.x) / 2).attr("y", d => (d.source.y + d.target.y) / 2);
     node.attr("transform", d => `translate(${d.x},${d.y})`);
   });
+}
+
+/* ==========================================
+   4. 탭 3: 중요 문장 (Quotes) 렌더링
+   ========================================== */
+function renderQuotes() {
+  const h = getHeroFullData(currentHero);
+  let html = "";
+  (h.quotes || []).forEach(q => {
+    html += `<div class="card"><h3>${q.text}</h3><p style="color:#aaa;margin-top:6px;">📌 ${q.desc}</p></div>`;
+  });
+  document.getElementById("quotesBox").innerHTML = html;
+}
+
+/* ==========================================
+   5. 탭 4: 갤러리 (Gallery) 렌더링
+   ========================================== */
+function renderGallery() {
+  const container = document.getElementById("gallery-container");
+  if (!container) return;
+  const items = heroGalleries[currentHero] || [];
+  if (items.length === 0) {
+    container.innerHTML = `<div style="color:#a89f91; text-align:center; grid-column:1/-1; padding:40px 0;">아직 등록된 명화 자료가 없습니다.</div>`;
+    return;
+  }
+  container.innerHTML = items.map(item => `
+    <div class="art-card">
+      <div class="art-img-wrap">
+        <img src="${item.imgUrl}" alt="${item.title}" loading="lazy" referrerpolicy="no-referrer" crossorigin="anonymous" 
+             onerror="this.onerror=null; if(!this.src.startsWith('https://wsrv.nl/?url=')){ this.src='https://wsrv.nl/?url=' + encodeURIComponent(this.src) + '&w=700'; }">
+      </div>
+      <div class="art-info">
+        <h4 class="art-title">${item.title}</h4>
+        <p class="art-original-title">${item.originalTitle}</p>
+        <ul class="art-meta">
+          <li><strong>작가:</strong> ${item.artist}</li>
+          <li><strong>연대/소장:</strong> ${item.year} | ${item.museum}</li>
+          <li><strong>라이선스:</strong> <span class="license-badge">${item.license}</span></li>
+        </ul>
+        <p class="art-desc">${item.desc}</p>
+        <a href="${item.sourceUrl}" target="_blank" rel="noopener noreferrer" class="source-link">위키미디어 출처 보기 ↗</a>
+      </div>
+    </div>
+  `).join('');
 }

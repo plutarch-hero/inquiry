@@ -1,7 +1,22 @@
+/* ==========================================
+   1. 전역 변수 및 DOM 요소 초기화
+   ========================================== */
 let mainMap = null;
 let currentHero = "theseus";
 const heroMarkers = {}; 
 
+let pollTimer = null;
+let lastDataFingerprint = "";
+
+// 주요 화면 요소
+const mapSection = document.getElementById("mapSection");
+const heroDetailSection = document.getElementById("heroDetailSection");
+const homeMapBtn = document.getElementById("homeMapBtn");
+const heroSelect = document.getElementById("heroSelect");
+
+/* ==========================================
+   2. 지도(Leaflet) 초기화 및 애니메이션 로직
+   ========================================== */
 function initMainMap() {
   const mapEl = document.getElementById('mainMap');
   if (!mapEl) return;
@@ -41,30 +56,26 @@ function initMainMap() {
         </div>
       `);
 
-      // ⭐ [수정 1] 마커를 직접 클릭했을 때도 카메라 이동!
+      // 마커를 직접 클릭했을 때도 카메라 이동!
       marker.on('click', () => {
         mainMap.flyTo([evt.lat, evt.lng], 7, { animate: true, duration: 1.2 });
         triggerPinAnimation(evt.hero);
       });
     });
   }
-
   setTimeout(() => { if (mainMap) mainMap.invalidateSize(); }, 200);
 }
 
-// ⭐ [수정 2] 애니메이션 종료 시 설명창(팝업)도 같이 닫기
+// 애니메이션 종료 시 설명창(팝업)도 같이 닫기
 window.triggerPinAnimation = function(heroKey) {
   const pinElement = document.getElementById(`pin-body-${heroKey}`);
   if (pinElement) {
     document.querySelectorAll('.pixel-pin-body').forEach(el => el.classList.remove('highlight-pin'));
     pinElement.classList.add('highlight-pin');
     
-    // 아이들이 글을 읽고 '상세 보기' 버튼을 누를 수 있도록 시간을 4초(4000)로 조정
+    // 아이들이 글을 읽고 '상세 보기' 버튼을 누를 수 있도록 시간 대기
     setTimeout(() => {
-      // 1. 캐릭터 크기 원상복구
       pinElement.classList.remove('highlight-pin');
-      
-      // 2. 해당 영웅의 설명창(팝업) 강제로 닫기
       if (heroMarkers[heroKey] && heroMarkers[heroKey].marker) {
         heroMarkers[heroKey].marker.closePopup(); 
       }
@@ -78,21 +89,17 @@ window.highlightHeroPin = function(heroKey) {
   if (!heroData || !mainMap) return;
 
   mainMap.flyTo(heroData.latlng, 7, { animate: true, duration: 1.2 });
-
   setTimeout(() => {
     heroData.marker.openPopup();
     triggerPinAnimation(heroKey);
   }, 1000);
 };
 
-// ... (아래부터는 원래 있던 const mapSection = ... 코드가 쭈욱 이어집니다) ...
-
-const mapSection = document.getElementById("mapSection");
-const heroDetailSection = document.getElementById("heroDetailSection");
-const homeMapBtn = document.getElementById("homeMapBtn");
-const heroSelect = document.getElementById("heroSelect");
-
+/* ==========================================
+   3. 화면 이동 및 탭 전환 로직
+   ========================================== */
 homeMapBtn.addEventListener("click", () => { showMapView(); });
+heroSelect.addEventListener("change", (e) => { openHeroView(e.target.value); });
 
 function showMapView() {
   homeMapBtn.classList.add("active");
@@ -102,8 +109,6 @@ function showMapView() {
   document.getElementById("appTitle").innerText = "🏛️ 플루타르코스 세계 지도";
   initMainMap();
 }
-
-heroSelect.addEventListener("change", (e) => { openHeroView(e.target.value); });
 
 window.openHeroView = function(heroKey) {
   currentHero = heroKey;
@@ -146,6 +151,9 @@ function switchHeroTab(tabName) {
   }
 }
 
+/* ==========================================
+   4. 공동탐구 게시판 로직 (Supabase 연동)
+   ========================================== */
 async function renderDebates() {
   const h = getHeroFullData(currentHero);
   document.getElementById("debateFormTitle").innerText = `💭 ${h.name} 공동탐구 생각 나누기`;
@@ -328,9 +336,9 @@ window.deleteDebateReply = async function(replyId, originPwd) {
   }
 };
 
-let pollTimer = null;
-let lastDataFingerprint = "";
-
+/* ==========================================
+   5. 실시간 동기화 로직 (WebSockets & Polling)
+   ========================================== */
 function setupRealtimeDebates() {
   try {
     supabaseClient.removeAllChannels();
@@ -368,6 +376,10 @@ async function checkAndSyncDebates(forceRender = false) {
   } catch (err) { console.warn("동기화 확인 중 오류:", err); }
 }
 
+/* ==========================================
+   6. UI 유틸리티 및 초기 실행
+   ========================================== */
+// 인물 설명창(Inspector) 드래그 기능
 (function enableInspectorDrag() {
   const inspector = document.getElementById("nodeInspector");
   if (!inspector) return;
@@ -402,6 +414,6 @@ async function checkAndSyncDebates(forceRender = false) {
   window.addEventListener("touchend", onEnd);
 })();
 
-// 초기 실행
+// 앱 최초 실행
 showMapView();
 setupRealtimeDebates();
