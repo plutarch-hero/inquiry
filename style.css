@@ -592,18 +592,33 @@ header {
 /* ==========================================
    성좌형 관계망 전용 스타일 & 초미세 유영 키프레임
    ========================================== */
+/* 1. 연결선 기본 상태: 완전 투명(0) */
 .constellation-line {
-  stroke-opacity: 0.35;
+  opacity: 0; /* 👈 선 숨기기 */
   stroke-width: 1.2px;
   stroke-dasharray: 2 4;
   transition: all 0.35s ease;
 }
 
+/* 2. 연결선 활성화 상태: 선명하게 켜짐 (점선 유지) */
 .constellation-line.active {
-  stroke-opacity: 0.95;
+  opacity: 0.95; 
   stroke-width: 2px;
-  stroke-dasharray: none;
+  stroke-dasharray: 4 4; /* 👈 이 부분을 none에서 '4 4' (점선 간격)으로 수정하세요! */
   filter: drop-shadow(0 0 6px currentColor);
+}
+
+/* 3. 선 위 관계 글자(조력자 등) 기본 상태: 숨기기 */
+.link-label {
+  opacity: 0;
+  transition: all 0.35s ease;
+  pointer-events: none;
+}
+
+/* 4. 선 위 관계 글자 활성화 상태: 켜짐 */
+.link-label.active {
+  opacity: 1;
+  font-weight: bold;
 }
 
 .axis-constellation-title {
@@ -624,15 +639,32 @@ header {
   cursor: pointer;
 }
 
+/* 기본 노드 글자: 평소에는 투명하게(opacity: 0) 숨겨둠 */
 .node-text {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   fill: #e2e8f0;
   user-select: none;
-  pointer-events: auto;
-  cursor: pointer;
+  pointer-events: none; /* 글자가 마우스 이벤트를 막지 않도록 변경 */
   filter: drop-shadow(0 1px 3px rgba(0,0,0,0.95));
   letter-spacing: -0.3px;
+  opacity: 0; /* 👈 평소에는 안 보이게 숨김 */
+  transition: opacity 0.3s ease; /* 👈 부드럽게 나타나는 효과 */
+}
+
+/* 별(노드)에 마우스를 올리거나 터치하면 글자가 나타남 */
+.star-node:hover .node-text,
+.star-node.active .node-text,
+.node-group:hover .node-text {
+  opacity: 1;
+}
+
+/* 주인공(중앙 영웅)의 이름은 항상 보이게 하고 싶다면 (선택 사항) */
+.star-node.is-hero .node-text {
+  opacity: 1;
+  font-size: 14px;
+  font-weight: bold;
+  fill: #e5be75;
 }
 
 .pixel-art {
