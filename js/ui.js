@@ -207,13 +207,14 @@ function renderNetwork() {
 
   nodes.forEach(d => { if (d.axis === "center") { d.x = cx; d.y = cy; d.fx = cx; d.fy = cy; } });
 
+  // ⭐ 자석 힘 및 충돌 반경 완화 (글자 안 겹치게)
   const simulation = d3.forceSimulation(nodes)
     .velocityDecay(0.8)
-    .force("link", d3.forceLink(links).id(d => d.id).distance(isMobile ? 55 : 75).strength(0.7))
-    .force("charge", d3.forceManyBody().strength(-20))
-    .force("collide", d3.forceCollide().radius(isMobile ? 24 : 28))
-    .force("x", d3.forceX(d => d.axis === "center" ? cx : axes[d.axis].x).strength(0.85))
-    .force("y", d3.forceY(d => d.axis === "center" ? cy : axes[d.axis].y).strength(0.85));
+    .force("link", d3.forceLink(links).id(d => d.id).distance(isMobile ? 80 : 120).strength(0.7))
+    .force("charge", d3.forceManyBody().strength(-150))
+    .force("collide", d3.forceCollide().radius(isMobile ? 35 : 45))
+    .force("x", d3.forceX(d => d.axis === "center" ? cx : axes[d.axis].x).strength(0.35))
+    .force("y", d3.forceY(d => d.axis === "center" ? cy : axes[d.axis].y).strength(0.35));
 
   const link = g.append("g").selectAll("line").data(links).enter().append("line").attr("class", "constellation-line")
     .attr("stroke", d => {
@@ -221,7 +222,14 @@ function renderNetwork() {
       return (targetNode && targetNode.axis !== "center" && axes[targetNode.axis]) ? axes[targetNode.axis].color : "#665243";
     });
 
-  const linkText = g.append("g").selectAll("text").data(links).enter().append("text").attr("text-anchor", "middle").attr("fill", "#c5b59f").attr("font-size", "9px").attr("dy", -3).text(d => d.label);
+  // ⭐ 관계 글자 생성 및 클래스 부여
+  const linkText = g.append("g").selectAll("text").data(links).enter().append("text")
+    .attr("class", "link-label")
+    .attr("text-anchor", "middle")
+    .attr("fill", "#c5b59f")
+    .attr("font-size", isMobile ? "9px" : "10px") 
+    .attr("dy", -4) 
+    .text(d => d.label);
 
   const node = g.append("g").selectAll(".star-node").data(nodes).enter().append("g").attr("class", "star-node")
     .call(d3.drag().on("start", (e, d) => { if (!e.active) simulation.alphaTarget(0.1).restart(); d.fx = d.x; d.fy = d.y; })
@@ -265,9 +273,24 @@ function renderNetwork() {
 
   node.append("text").attr("class", "node-text").attr("dy", d => d.axis === "center" ? 32 : 19).attr("text-anchor", "middle").text(d => d.name);
 
+  // ⭐ 통합된 클릭 이벤트 (인물 창 띄우기 + 별자리 선/글자 켜기)
   node.on("click", (e, d) => {
     e.stopPropagation();
+    
+    // 1. 선과 관계 글자 켜기
     link.classed("active", l => (l.source.id || l.source) === d.id || (l.target.id || l.target) === d.id);
+    linkText.classed("active", l => (l.source.id || l.source) === d.id || (l.target.id || l.target) === d.id);
+    
+    // 2. 연결된 인물의 이름 켜기
+    d3.selectAll(".star-node").classed("active", n => {
+      if (n.id === d.id) return true;
+      return links.some(l => 
+        ((l.source.id || l.source) === d.id && (l.target.id || l.target) === n.id) ||
+        ((l.target.id || l.target) === d.id && (l.source.id || l.source) === n.id)
+      );
+    });
+
+    // 3. 우측 상단 인물 설명창(Inspector) 내용 채우고 띄우기
     const ins = document.getElementById("nodeInspector");
     document.getElementById("insType").innerText = d.type;
     document.getElementById("insName").innerText = d.name;
@@ -282,8 +305,21 @@ function renderNetwork() {
     }
   });
 
-  svg.on("click", () => { document.getElementById("nodeInspector").classList.add("hidden"); link.classed("active", false); });
-  document.getElementById("closeInsBtn").onclick = () => { document.getElementById("nodeInspector").classList.add("hidden"); link.classed("active", false); };
+  // ⭐ 빈 바탕을 누르면 모두 초기화(끄기)
+  svg.on("click", () => { 
+    document.getElementById("nodeInspector").classList.add("hidden"); 
+    link.classed("active", false); 
+    linkText.classed("active", false);
+    d3.selectAll(".star-node").classed("active", false); 
+  });
+
+  // ⭐ 설명창의 X 버튼을 누르면 모두 초기화(끄기)
+  document.getElementById("closeInsBtn").onclick = () => { 
+    document.getElementById("nodeInspector").classList.add("hidden"); 
+    link.classed("active", false); 
+    linkText.classed("active", false);
+    d3.selectAll(".star-node").classed("active", false); 
+  };
 
   simulation.on("tick", () => {
     link.attr("x1", d => d.source.x).attr("y1", d => d.source.y).attr("x2", d => d.target.x).attr("y2", d => d.target.y);
