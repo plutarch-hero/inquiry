@@ -202,11 +202,34 @@ function renderNetwork() {
     celestialGrid.append("text").attr("class", "axis-constellation-title").attr("x", axis.x).attr("y", axis.labelY).attr("fill", axis.color).text(axis.name);
   });
 
-  const nodes = JSON.parse(JSON.stringify(h.graph.nodes));
-  const links = JSON.parse(JSON.stringify(h.graph.links));
+const nodes = JSON.parse(JSON.stringify(h.graph.nodes));
+  const originalLinks = JSON.parse(JSON.stringify(h.graph.links)); // 원본 선 데이터 백업
+
+  // ⭐ 1. 중앙의 주인공(영웅) ID 찾기
+  const centerId = nodes.find(n => n.axis === "center").id;
+
+  // ⭐ 2. 모든 조연을 무조건 영웅과 직접 연결하도록 선(link)을 완전히 새로 만들기!
+  let links = [];
+  nodes.forEach(n => {
+    if (n.id !== centerId) { // 영웅 본인이 아니라면
+      // 이 별이 원래 가지고 있던 '관계 설명(label)'을 원본에서 찾아오기
+      const oldLink = originalLinks.find(l => 
+        (l.source.id || l.source) === n.id || 
+        (l.target.id || l.target) === n.id
+      );
+      const labelText = oldLink ? oldLink.label : "관련 인물/사건";
+
+      // 영웅(centerId)과 이 별(n.id)을 강제로 직접 연결!
+      links.push({
+        source: centerId,
+        target: n.id,
+        label: labelText
+      });
+    }
+  });
 
   nodes.forEach(d => { if (d.axis === "center") { d.x = cx; d.y = cy; d.fx = cx; d.fy = cy; } });
-
+  
   // ⭐ 자석 힘 및 충돌 반경 완화 (글자 안 겹치게)
   const simulation = d3.forceSimulation(nodes)
     .velocityDecay(0.8)
