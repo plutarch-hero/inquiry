@@ -1,5 +1,6 @@
 let mainMap = null;
 let currentHero = "theseus";
+const heroMarkers = {}; 
 
 function initMainMap() {
   const mapEl = document.getElementById('mainMap');
@@ -8,7 +9,6 @@ function initMainMap() {
   if (!mainMap) {
     mainMap = L.map('mainMap', { zoomControl: true, fadeAnimation: true }).setView([39.0, 18.0], 5);
 
-    // 구글 지도 한국어 타일로 변경
     L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}&hl=ko', {
       maxZoom: 18,
       attribution: '© Google Maps'
@@ -18,12 +18,19 @@ function initMainMap() {
       const spriteHtml = HERO_SPRITES[evt.hero] || "";
       const icon = L.divIcon({
         className: 'pixel-pin-container',
-        html: `<div class="pixel-pin-body">${spriteHtml}</div>`,
+        html: `<div class="pixel-pin-body" id="pin-body-${evt.hero}">${spriteHtml}</div>`,
         iconSize: [38, 38],
-        iconAnchor: [19, 36]
+        iconAnchor: [19, 36],
+        popupAnchor: [0, -45] // 팝업창을 캐릭터 머리 위로 올림
       });
 
       const marker = L.marker([evt.lat, evt.lng], { icon: icon }).addTo(mainMap);
+      
+      heroMarkers[evt.hero] = {
+        marker: marker,
+        latlng: [evt.lat, evt.lng]
+      };
+
       marker.bindPopup(`
         <div class="popup-inner">
           <h4 style="margin:0 0 6px 0; color:#e5be75; font-size:14px;">[${evt.heroName}] ${evt.title}</h4>
@@ -33,11 +40,52 @@ function initMainMap() {
           </button>
         </div>
       `);
+
+      // ⭐ [수정 1] 마커를 직접 클릭했을 때도 카메라 이동!
+      marker.on('click', () => {
+        mainMap.flyTo([evt.lat, evt.lng], 7, { animate: true, duration: 1.2 });
+        triggerPinAnimation(evt.hero);
+      });
     });
   }
 
   setTimeout(() => { if (mainMap) mainMap.invalidateSize(); }, 200);
 }
+
+// ⭐ [수정 2] 애니메이션 종료 시 설명창(팝업)도 같이 닫기
+window.triggerPinAnimation = function(heroKey) {
+  const pinElement = document.getElementById(`pin-body-${heroKey}`);
+  if (pinElement) {
+    document.querySelectorAll('.pixel-pin-body').forEach(el => el.classList.remove('highlight-pin'));
+    pinElement.classList.add('highlight-pin');
+    
+    // 아이들이 글을 읽고 '상세 보기' 버튼을 누를 수 있도록 시간을 4초(4000)로 조정
+    setTimeout(() => {
+      // 1. 캐릭터 크기 원상복구
+      pinElement.classList.remove('highlight-pin');
+      
+      // 2. 해당 영웅의 설명창(팝업) 강제로 닫기
+      if (heroMarkers[heroKey] && heroMarkers[heroKey].marker) {
+        heroMarkers[heroKey].marker.closePopup(); 
+      }
+    }, 3000); 
+  }
+};
+
+// 범례 버튼 클릭 시 실행
+window.highlightHeroPin = function(heroKey) {
+  const heroData = heroMarkers[heroKey];
+  if (!heroData || !mainMap) return;
+
+  mainMap.flyTo(heroData.latlng, 7, { animate: true, duration: 1.2 });
+
+  setTimeout(() => {
+    heroData.marker.openPopup();
+    triggerPinAnimation(heroKey);
+  }, 1000);
+};
+
+// ... (아래부터는 원래 있던 const mapSection = ... 코드가 쭈욱 이어집니다) ...
 
 const mapSection = document.getElementById("mapSection");
 const heroDetailSection = document.getElementById("heroDetailSection");
