@@ -23,7 +23,6 @@ const heroGraphData = {
       { source: "theseus", target: "ariadne_thread", label: "해법 제시" },
       { source: "theseus", target: "synoikismos", label: "연방 창건" },
       { source: "theseus", target: "pirithous", label: "혈맹 결의" },
-      { source: "theseus", target: "ship_of_theseus", label: "기념 보존" },
       { source: "theseus", target: "black_sails", label: "치명적 망각" },
       { source: "theseus", target: "menesteus", label: "정치적 반란" },
       { source: "theseus", target: "hippolytus", label: "무고와 참변" }
