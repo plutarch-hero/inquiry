@@ -10,24 +10,23 @@ const heroGraphData = {
       { id: "ariadne_thread", name: "아리아드네 실", axis: "labors", shapeType: "item", type: "지혜", desc: "미궁 탈출의 실타래", insight: "크레타의 미궁에서 탈출할 때 쓰인 실타래는 복잡한 난제를 푸는 '실마리'의 신화적 기원이 됨" },
       { id: "synoikismos", name: "아테네 연방", axis: "politics", shapeType: "item", type: "정치 개혁", desc: "12개 부족 연합 통합", insight: "앗티케의 여러 부족을 한 도시로 이주하며 군주제를 버리고 민주정을 설립할 결단을 내림(모든 이여, 이리로 오라)" },
       { id: "pirithous", name: "페이리투스", axis: "politics", shapeType: "person", type: "동맹/전우", desc: "라피타이족의 군주", insight: "켄타우로스족에 대한 복수부터 헬레네 납치 및 몰롯시아 지역의 모험까지 함께 했던 영혼의 맹우" },
-      { id: "ship_of_theseus", name: "테세우스의 배", axis: "politics", shapeType: "item", type: "철학적 상징", desc: "보존된 성스러운 목선", insight: "부품이 바뀌어도 본질은 영원한가에 대한 존재론적 질문" },
       { id: "black_sails", name: "망각의 검은 돛", axis: "tragedy", shapeType: "item", type: "비극의 표식", desc: "교체하지 못한 승전의 돛", insight: "승리의 자만이 불러온 돌이킬 수 없는 실수로 아버지의 죽음을 초래함" },
-      { id: "phaedra", name: "파이드라", axis: "tragedy", shapeType: "person", type: "왕비", desc: "비운의 아테네 왕비", insight: "의붓아들(힙폴뤼토스)을 연모하다 실패하자 누명을 씌운 유서를 남기고 자결함" },
+      { id: "menesteus", name: "메네스테우스", axis: "tragedy", shapeType: "person", type: "경쟁자", desc: "아테나이의 귀족", insight: "테세우스의 부재를 틈타 아테나이 민중을 선동하여 귀환한 테세우스를 에우보이아 지방으로 몰아내게 한 주동자" },
       { id: "hippolytus", name: "힙폴뤼토스", axis: "tragedy", shapeType: "person", type: "아들", desc: "테세우스의 친아들", insight: "계모(파이드라)의 유서 속 거짓 고발과 부친(테세우스)의 질책으로 숨진 무고한 희생자" }
     ],
     links: [
       { source: "theseus", target: "aegeus", label: "부자 관계" },
       { source: "theseus", target: "poseidon", label: "운명 도움" },
-      { source: "aegeus", target: "sword_sandals", label: "신표 안치" },
+      { source: "theseus", target: "sword_sandals", label: "징표 안치" },
       { source: "theseus", target: "periphetes", label: "무력 징벌" },
       { source: "theseus", target: "minotaur", label: "미궁 처단" },
-      { source: "minotaur", target: "ariadne_thread", label: "해법 제시" },
+      { source: "theseus", target: "ariadne_thread", label: "해법 제시" },
       { source: "theseus", target: "synoikismos", label: "연방 창건" },
       { source: "theseus", target: "pirithous", label: "혈맹 결의" },
       { source: "theseus", target: "ship_of_theseus", label: "기념 보존" },
       { source: "theseus", target: "black_sails", label: "치명적 망각" },
-      { source: "theseus", target: "phaedra", label: "비극적 정략혼" },
-      { source: "phaedra", target: "hippolytus", label: "무고와 참변" }
+      { source: "theseus", target: "menesteus", label: "정치적 반란" },
+      { source: "theseus", target: "hippolytus", label: "무고와 참변" }
     ]
   },
   romulus: {
