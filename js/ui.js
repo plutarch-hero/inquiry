@@ -312,13 +312,99 @@ function renderNetwork() {
 /* ==========================================
    4. 탭 3: 중요 문장 (Quotes) 렌더링
    ========================================== */
-function renderQuotes() {
-  const h = getHeroFullData(currentHero);
+async function renderQuotes() {
+  const h = getHeroFullData(currentHero); // 현재 영웅 데이터 가져오기
+  const container = document.getElementById("quotesBox");
+
   let html = "";
+
+  // 1. 기존 플루타르코스의 기본 명언 렌더링 (복구됨)
   (h.quotes || []).forEach(q => {
     html += `<div class="card"><h3>${q.text}</h3><p style="color:#aaa;margin-top:6px;">📌 ${q.desc}</p></div>`;
   });
-  document.getElementById("quotesBox").innerHTML = html;
+
+  // 2. 학생 입력 폼 추가 (기존 CSS 클래스 100% 재사용)
+  html += `
+    <div class="debate-form-card" style="margin-top: 24px;">
+      <h3>✍️ 나만의 문장 기록하기</h3>
+      <p class="form-subtext">이 영웅의 이야기 중 가장 기억에 남는 문장과 그 이유를 적어보세요.</p>
+      
+      <div class="input-row">
+        <input type="text" id="q_name" placeholder="이름" style="flex: 1;">
+        <input type="password" id="q_pwd" placeholder="비밀번호(4자리)" style="width: 120px;">
+      </div>
+      <textarea id="q_text" placeholder="기억에 남는 문장을 적어주세요."></textarea>
+      <textarea id="q_reason" placeholder="이 문장을 선택한 이유는 무엇인가요?"></textarea>
+      
+      <button id="submitQuoteBtn" class="submit-debate-btn">등록하기</button>
+    </div>
+    
+    <div id="studentQuotesList">
+      <p class="no-posts">데이터를 불러오는 중입니다...</p>
+    </div>
+  `;
+
+  container.innerHTML = html;
+
+  // ui.js의 renderQuotes 함수 내부 - loadStudentQuotes 부분 교체
+  async function loadStudentQuotes() {
+    const quotesList = document.getElementById("studentQuotesList");
+    const data = await fetchStudentQuotes(currentHero); 
+
+    if (!data || data.length === 0) {
+      quotesList.innerHTML = `<p class="no-posts">아직 등록된 문장이 없습니다. 첫 번째로 문장을 남겨보세요!</p>`;
+      return;
+    }
+
+    quotesList.innerHTML = data.map(item => `
+      <div class="debate-post">
+        <div class="post-header">
+          <span class="post-author">${item.student_name}</span>
+          <div>
+            <button class="action-btn" onclick="handleEditQuote('${item.id}', '${item.quote_text.replace(/'/g, "\\'")}', '${item.reason_text.replace(/'/g, "\\'")}')">수정</button>
+            <button class="action-btn del" onclick="handleDeleteQuote('${item.id}')">삭제</button>
+          </div>
+        </div>
+        <div class="post-content">
+          <strong style="color:#e5be75;">"${item.quote_text}"</strong><br><br>
+          <span style="color:#ccc;">📌 ${item.reason_text}</span>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // 화면을 열자마자 데이터 최초 로드
+  await loadStudentQuotes();
+
+  // 4. 등록 버튼 이벤트
+  const submitBtn = document.getElementById("submitQuoteBtn");
+  if (submitBtn) {
+    submitBtn.addEventListener("click", async () => {
+      const name = document.getElementById("q_name").value.trim();
+      const pwd = document.getElementById("q_pwd").value.trim();
+      const text = document.getElementById("q_text").value.trim();
+      const reason = document.getElementById("q_reason").value.trim();
+
+      if (!name || !pwd || !text || !reason) {
+      alert("이름, 비밀번호, 내용을 모두 입력해주세요!");
+      return;
+    }
+
+      const success = await insertStudentQuote(currentHero, name, pwd, text, reason);
+      if (success) {
+        alert("등록되었습니다!");
+        // 입력창 비우기
+        document.getElementById("q_name").value = "";
+        document.getElementById("q_pwd").value = "";
+        document.getElementById("q_text").value = "";
+        document.getElementById("q_reason").value = "";
+        // 리스트만 새로고침
+        await loadStudentQuotes();
+      } else {
+        alert("등록에 실패했습니다.");
+      }
+    });
+  }
 }
 
 /* ==========================================
@@ -352,3 +438,43 @@ function renderGallery() {
     </div>
   `).join('');
 }
+
+// ui.js 맨 아래의 팝업 함수 변경
+window.handleDeleteQuote = async function(id) {
+  const pwd = prompt("글을 삭제하려면 등록할 때 입력한 비밀번호를 입력하세요:");
+  if (!pwd) return;
+
+  if (confirm("정말 이 문장을 삭제할까요?")) {
+    const success = await deleteStudentQuote(id, pwd);
+    if (success) {
+      alert("삭제되었습니다.");
+      renderQuotes(); 
+    } else {
+      alert("비밀번호가 일치하지 않습니다.");
+    }
+  }
+};
+
+window.handleEditQuote = async function(id, oldText, oldReason) {
+  const pwd = prompt("글을 수정하려면 등록할 때 입력한 비밀번호를 입력하세요:");
+  if (!pwd) return;
+
+  const newText = prompt("수정할 문장을 입력하세요:", oldText);
+  if (newText === null) return; 
+  
+  const newReason = prompt("수정할 이유를 입력하세요:", oldReason);
+  if (newReason === null) return;
+
+  if (newText.trim() === "" || newReason.trim() === "") {
+    alert("내용을 비워둘 수 없습니다.");
+    return;
+  }
+
+  const success = await updateStudentQuote(id, pwd, newText, newReason);
+  if (success) {
+    alert("수정되었습니다.");
+    renderQuotes(); 
+  } else {
+    alert("비밀번호가 일치하지 않습니다.");
+  }
+};

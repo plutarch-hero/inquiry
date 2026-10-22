@@ -36,6 +36,7 @@ ${PLUTARCH_PROMPT_SYSTEM}
     });
 
     const data = await res.json();
+    
     if (!res.ok) { console.error("Error:", data); return null; }
 
     if (data.text) return data.text.trim();
@@ -45,5 +46,72 @@ ${PLUTARCH_PROMPT_SYSTEM}
   } catch (err) {
     console.error("AI 통신 실패:", err);
     return null;
+  }
+}
+
+// api.js에 추가
+async function fetchStudentQuotes(heroKey) {
+  try {
+    const { data, error } = await supabaseClient
+      .from('student_quotes')
+      .select('*')
+      .eq('hero_key', heroKey)
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    console.error("문장 불러오기 실패:", err);
+    return [];
+  }
+}
+
+// 1. 등록 함수 수정 (password 매개변수 추가)
+async function insertStudentQuote(heroKey, studentName, password, quoteText, reasonText) {
+  try {
+    const { error } = await supabaseClient
+      .from('student_quotes')
+      .insert([{ hero_key: heroKey, student_name: studentName, password: password, quote_text: quoteText, reason_text: reasonText }]);
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error("문장 등록 실패:", err);
+    return false;
+  }
+}
+
+// 2. 삭제 함수 수정 (password 조건과 select() 추가)
+async function deleteStudentQuote(id, password) {
+  try {
+    const { data, error } = await supabaseClient
+      .from('student_quotes')
+      .delete()
+      .eq('id', id)
+      .eq('password', password)
+      .select(); // 조건에 맞아 실제 삭제된 데이터를 반환받음
+      
+    if (error) throw error;
+    return data && data.length > 0; // 삭제된 행이 있으면 true (비밀번호 일치)
+  } catch (err) {
+    console.error("삭제 실패:", err);
+    return false;
+  }
+}
+
+// 3. 수정 함수 수정 (password 조건과 select() 추가)
+async function updateStudentQuote(id, password, newText, newReason) {
+  try {
+    const { data, error } = await supabaseClient
+      .from('student_quotes')
+      .update({ quote_text: newText, reason_text: newReason })
+      .eq('id', id)
+      .eq('password', password)
+      .select();
+      
+    if (error) throw error;
+    return data && data.length > 0; // 수정된 행이 있으면 true
+  } catch (err) {
+    console.error("수정 실패:", err);
+    return false;
   }
 }
